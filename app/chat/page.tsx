@@ -17,6 +17,8 @@ export default function Chat() {
     }, [messages]);
 
     const sendMessage = async () => {
+        if (!message.trim()) return;
+
         // Add user message to the chat
         setMessages((messages) => [
             ...messages,
@@ -26,7 +28,7 @@ export default function Chat() {
             },
             {
                 role: "assistant",
-                content: "",
+                content: "Typing...",
             },
         ]);
         setMessage("");
@@ -37,66 +39,53 @@ export default function Chat() {
             headers: {
                 "Content-Type": "application/json",
             },
-            body: JSON.stringify([...messages, { role: "user", content: message }]),
+            body: message,
         }).then(async (res) => {
-            const reader = res.body?.getReader();
-            let decoder = new TextDecoder();
+            const text = await res.text();
 
-            let result = "";
-            return reader?.read().then(function processText({ done, value }) {
-                if (done) {
-                    return result;
-                }
-
-                const text = decoder.decode(value || new Int8Array(), { stream: true });
-                setMessages((messages) => {
-                    let lastMessage = messages[messages.length - 1];
-                    let otherMessages = messages.slice(0, messages.length - 1);
-                    return [
-                        ...otherMessages,
-                        { ...lastMessage, content: lastMessage.content + text },
-                    ];
-                });
-
+            setMessages((messages) => {
+                let lastMessage = messages[messages.length - 1];
+                let otherMessages = messages.slice(0, messages.length - 1);
+                return [
+                    ...otherMessages,
+                    { ...lastMessage, content: text },
+                ];
             });
-
         });
-
-
     };
 
     return (
-        <div className="w-screen h-screen flex items-center justify-center bg-gray-200">
-            <div className="flex flex-col w-full max-w-md h-3/4 bg-white border rounded-lg shadow-lg">
+        <div className="w-screen h-screen flex items-center justify-center bg-gray-100">
+            <div className="flex flex-col w-full max-w-lg h-3/4 bg-white border border-gray-300 rounded-lg shadow-lg">
                 <div className="flex flex-col h-full p-4 space-y-4 overflow-y-auto">
                     {messages.map((message, index) => (
                         <div
                             key={index}
-                            className={`flex ${message.role === "assistant" ? "justify-start" : "justify-end"
-                                }`}
+                            className={`flex ${message.role === "assistant" ? "justify-start" : "justify-end"}`}
                         >
                             <div
                                 className={`p-4 rounded-lg max-w-xs ${message.role === "assistant"
                                     ? "bg-blue-100 text-blue-900"
                                     : "bg-green-100 text-green-900"
-                                    } shadow-md animate-fade-in`}
+                                    } shadow-md`}
                             >
-                                <pre className="text-lg font-normal">{message.content}</pre>
+                                <p className="whitespace-pre-wrap text-lg font-medium">{message.content.toString()}</p>
                             </div>
                         </div>
                     ))}
                     <div ref={endOfMessagesRef} />
                 </div>
-                <div className="flex p-4 border-t">
+                <div className="flex p-4 border-t bg-gray-50">
                     <input
                         type="text"
-                        className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        className="flex-grow p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
                         value={message}
                         onChange={(e) => setMessage(e.target.value)}
                         placeholder="Type your message here..."
                     />
                     <button
-                        className="ml-4 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition duration-300"
+                        type="button"
+                        className="ml-4 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition duration-300"
                         onClick={sendMessage}
                     >
                         Send

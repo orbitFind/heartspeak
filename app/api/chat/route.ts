@@ -1,41 +1,26 @@
-import { NextResponse } from 'next/server';
-import { GoogleGenerativeAI, GenerateContentRequest } from '@google/generative-ai';
+import { NextRequest, NextResponse } from 'next/server';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import model from '@/app/lib/gemini';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY as string);
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    // returns an array of messages from the request body
-    const messages = await request.json();
+    // // returns an array of messages from the request body
+    // const messages = await request.json();
 
-    // Validate that messages is an array
-    if (!Array.isArray(messages)) {
-      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
-    }
+    // // Validate that messages is an array
+    // if (!Array.isArray(messages)) {
+    //   return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+    // }
 
-    const result = await model.generateContent(messages.join('\n'));
+    const body = await request.text();
+
+    const result = await model.generateContent(body);
     const response = await result.response;
-    const generatedText = response.text;
-
-
-    const stream = new ReadableStream({
-        async start(controller) {
-            const encoder = new TextEncoder();
-            try {
-                for await (const chunk of result.stream()) {
-                    const content = encoder.encode(chunk);
-                    controller.enqueue(content);
-                }
-            } catch (error) {
-                controller.error(error);
-            } finally {
-                controller.close();
-            }
-        }});
+    const generatedText = response.text();
     
-
-    return NextResponse.json(stream);
+    return NextResponse.json(generatedText);
   } catch (error) {
     console.error('Error generating content:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

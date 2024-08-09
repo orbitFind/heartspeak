@@ -1,9 +1,12 @@
 "use client"
-import { useState } from 'react';
 import { auth } from '@/app/lib/firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 
 const SignIn = () => {
+    const router = useRouter();
+
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState<string | null>(null);
@@ -12,12 +15,10 @@ const SignIn = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            await signInWithEmailAndPassword(auth, email, password);
-            setEmail('');
-            setPassword('');
-            setError(null);
+            const userCredential = await signInWithEmailAndPassword(auth, email, password);
             setSuccess(true);
-            window.location.href = '/protected/chat';
+            setError(null);
+            router.push('/chat');
         } catch (error) {
             if (error instanceof Error) {
                 setError(error.message);

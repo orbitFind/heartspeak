@@ -1,7 +1,12 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
+import { useAuth } from "@/app/hooks/useAuth";
+import { useRouter } from "next/navigation";
 
 export default function Chat() {
+    const user = useAuth();
+    const router = useRouter();
+
     const [messages, setMessages] = useState([
         {
             role: "assistant",
@@ -11,6 +16,12 @@ export default function Chat() {
 
     const [message, setMessage] = useState("");
     const endOfMessagesRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (user === null) {
+            router.push("/auth/signin");
+        }
+    }, [user, router]);
 
     useEffect(() => {
         endOfMessagesRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -93,5 +104,5 @@ export default function Chat() {
                 </div>
             </div>
         </div>
-    );
+    )
 }

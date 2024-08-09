@@ -1,10 +1,15 @@
+import { useRouter } from 'next/navigation';
 import { auth } from '../lib/firebase';
 import { signOut } from 'firebase/auth';
 
 const SignOut = () => {
+    const router = useRouter();
+
     const handleSignOut = async () => {
         try {
-            await signOut(auth);
+            await signOut(auth).then(() => {
+                router.push('/');
+            });
         } catch (error) {
             console.error('Error signing out:', error);
         }

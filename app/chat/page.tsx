@@ -1,11 +1,16 @@
-"use client";
+"use client"
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/app/hooks/useAuth";
 import { useRouter } from "next/navigation";
+import { db } from "@/app/lib/firebase";
+import { addDoc, collection, getDocs, query, where } from "firebase/firestore";
+import LoadingSpinner from "../components/layout/LoadingSpinner";
 
 export default function Chat() {
     const user = useAuth();
     const router = useRouter();
+
+    const [loading, setLoading] = useState(true);
 
     const [messages, setMessages] = useState([
         {
@@ -18,25 +23,65 @@ export default function Chat() {
     const endOfMessagesRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        if (user === null) {
+        const fetchMessages = async () => {
+            if (user === null) {
+                router.push("/login");
+                return;
+            }
+
+            if (!user?.uid) {
+                console.error("User UID is undefined");
+                return;
+            }
+
+            try {
+                const querySnapshot = await getDocs(
+                    query(collection(db, 'chats'), where('uid', '==', user.uid))
+                );
+
+                const fetchedMessages = [
+                    {
+                        role: "assistant",
+                        content: "Hello, I'm the HeartSpeak Assistant. How can I help you today?",
+                    },
+                    ...querySnapshot.docs.map((doc) => {
+                        const { role, content } = doc.data();
+                        return { role, content };
+                    }),
+                ];
+
+                setMessages(fetchedMessages);
+            } catch (error) {
+                console.error('Error fetching messages:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (user?.uid) {
+            fetchMessages().then(() => {
+                if (endOfMessagesRef.current) {
+                    endOfMessagesRef.current.scrollIntoView({ behavior: "smooth" });
+                }
+            });
+        } else {
             router.push("/auth/signin");
+            setLoading(false);
         }
     }, [user, router]);
 
-    useEffect(() => {
-        endOfMessagesRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [messages]);
-
     const sendMessage = async () => {
-        if (!message.trim()) return;
+        if (!message.trim() || !user) return;
+
+        const userMessage = {
+            role: "user",
+            content: message,
+        };
 
         // Add user message to the chat
         setMessages((messages) => [
             ...messages,
-            {
-                role: "user",
-                content: message,
-            },
+            userMessage,
             {
                 role: "assistant",
                 content: "Typing...",
@@ -44,26 +89,51 @@ export default function Chat() {
         ]);
         setMessage("");
 
-        // Fetch AI response from the Next.js API route
-        const response = await fetch("/api/chat", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: message,
-        }).then(async (res) => {
-            const text = await res.text();
-
-            setMessages((messages) => {
-                let lastMessage = messages[messages.length - 1];
-                let otherMessages = messages.slice(0, messages.length - 1);
-                return [
-                    ...otherMessages,
-                    { ...lastMessage, content: text },
-                ];
+        try {
+            // Save user message to Firestore
+            await addDoc(collection(db, 'chats'), {
+                uid: user.uid,
+                role: userMessage.role,
+                content: userMessage.content,
+                timestamp: new Date(),
             });
-        });
+
+            // Fetch AI response from the Next.js API route
+            const response = await fetch("/api/chat", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: message,
+            }).then(async (res) => {
+                const text = await res.text();
+
+                // Update chat with AI response
+                setMessages((messages) => {
+                    let lastMessage = messages[messages.length - 1];
+                    let otherMessages = messages.slice(0, messages.length - 1);
+                    return [
+                        ...otherMessages,
+                        { ...lastMessage, content: text },
+                    ];
+                });
+
+                // Save AI response to Firestore
+                await addDoc(collection(db, 'chats'), {
+                    uid: user.uid,
+                    role: 'assistant',
+                    content: text,
+                    timestamp: new Date(),
+                });
+            });
+        } catch (error) {
+            console.error('Error handling message:', error);
+        }
     };
+
+    if (loading) {
+        return <LoadingSpinner />;
+    }
 
     return (
         <div className="w-screen h-screen flex items-center justify-center bg-gray-100">

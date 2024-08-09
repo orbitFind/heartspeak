@@ -15,7 +15,7 @@ const HomePage = () => {
           Welcome to HeartSpeak
         </h1>
         <p className="text-lg text-gray-600 mb-8">
-          Your compassionate AI assistant for mental well-being. HeartSpeak provides supportive, empathetic conversations and personalized care to help you navigate life's challenges.
+          Your compassionate AI assistant for mental well-being. HeartSpeak provides supportive, empathetic conversations and personalized care to help you navigate life&apos;s challenges.
         </p>
         <button
           onClick={handleStartJourney}

@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
 
     // Define the system prompt
     const SYSTEM_PROMPT = `
-    You are a mental health assistant. Your role is to provide empathetic, supportive, and helpful responses to individuals seeking mental health support. Your responses should offer advice, guidance, and encouragement. Do not complete or continue the user's sentence. Focus on addressing the user's concerns with relevant and compassionate advice.
+    You are a mental health assistant. Your role is to provide empathetic, supportive, and helpful responses to individuals seeking mental health support. Your responses should offer advice, guidance, and encouragement. Do not complete or continue the user's sentence. Focus solely on providing relevant and compassionate advice directly based on the user's input.
 
     Example interactions:
     1. User: "I'm feeling anxious about my upcoming exam." 
@@ -22,21 +22,34 @@ export async function POST(request: NextRequest) {
     2. User: "I'm having trouble sleeping at night."
       Response: "Good sleep hygiene can help. Consider establishing a bedtime routine, reducing caffeine intake, and creating a calm sleep environment. If problems persist, consulting with a healthcare professional might be beneficial."
 
-    Here is the user input:
+    Based on the user's input, provide advice:
     `;
 
+    
 
-    const command = new InvokeModelCommand({
-      modelId: "meta.llama3-70b-instruct-v1:0", // Replace with your actual model ID
-      body: JSON.stringify({
-        prompt: SYSTEM_PROMPT + inputText,
-        max_gen_len: 512,
-        temperature: 0.3,
-        top_p: 0.8,
-      }),
-      contentType: "application/json",
-      accept: "application/json",
-    });
+
+    const command = new InvokeModelCommand(
+      {
+        modelId: "anthropic.claude-3-haiku-20240307-v1:0",
+        contentType: "application/json",
+        accept: "application/json",
+        body: JSON.stringify({
+          anthropic_version: "bedrock-2023-05-31",
+          max_tokens: 1000,
+          messages: [
+            {
+              role: "user",
+              content: [
+                {
+                  type: "text",
+                  text: SYSTEM_PROMPT + inputText
+                }
+              ]
+            }
+          ]
+        })
+      }
+    );
 
     // Send the command and get the response
     const response = await bedrockClient.send(command);
@@ -46,14 +59,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No response body" }, { status: 500 });
     }
 
-    // Convert the Uint8Array to a string
-    const uint8Array = response.body as Uint8Array; // Ensure it's treated as Uint8Array
-    const responseBody = decodeUint8Array(uint8Array);
-
     // Try parsing the response body as JSON
     let parsedResponse;
     try {
-      parsedResponse = JSON.parse(responseBody);
+      parsedResponse = JSON.parse(decodeUint8Array(response.body));
     } catch (jsonParseError) {
       console.error("Failed to parse JSON:", jsonParseError);
       return NextResponse.json(
@@ -63,7 +72,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Extract and return the generated text
-    const generatedText = parsedResponse?.generation || "No response received";
+    const generatedText = parsedResponse?.content[0]?.text;
     return NextResponse.json({ text: generatedText });
   } catch (error) {
     console.error("Error generating content:", error);

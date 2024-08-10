@@ -64,6 +64,9 @@ export default function Chat() {
                     endOfMessagesRef.current.scrollIntoView({ behavior: "smooth" });
                 }
             });
+        } else {
+            router.push("/auth/signin");
+            setLoading(false);
         }
     }, [user, router]);
 
@@ -112,7 +115,7 @@ export default function Chat() {
                     let otherMessages = messages.slice(0, messages.length - 1);
                     return [
                         ...otherMessages,
-                        { ...lastMessage, content: text.toString() },
+                        { ...lastMessage, content: text },
                     ];
                 });
 
@@ -148,7 +151,7 @@ export default function Chat() {
                                     : "bg-green-100 text-green-900"
                                     } shadow-md`}
                             >
-                                <p className="whitespace-pre-wrap text-lg font-medium">{message.content.toString()}</p>
+                                <p className="whitespace-pre-wrap text-lg font-medium">{message.content}</p>
                             </div>
                         </div>
                     ))}

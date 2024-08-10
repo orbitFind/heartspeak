@@ -64,9 +64,6 @@ export default function Chat() {
                     endOfMessagesRef.current.scrollIntoView({ behavior: "smooth" });
                 }
             });
-        } else {
-            router.push("/auth/signin");
-            setLoading(false);
         }
     }, [user, router]);
 
@@ -106,7 +103,8 @@ export default function Chat() {
                 },
                 body: message,
             }).then(async (res) => {
-                const text = await res.text();
+                const responseJson = await res.json();
+                const text = responseJson.text;
 
                 // Update chat with AI response
                 setMessages((messages) => {
@@ -114,7 +112,7 @@ export default function Chat() {
                     let otherMessages = messages.slice(0, messages.length - 1);
                     return [
                         ...otherMessages,
-                        { ...lastMessage, content: text },
+                        { ...lastMessage, content: text.toString() },
                     ];
                 });
 

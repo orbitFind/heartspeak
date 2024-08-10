@@ -47,7 +47,7 @@ export default function Chat() {
                     ...querySnapshot.docs.map((doc) => {
                         const { role, content } = doc.data();
                         return { role, content };
-                    }),
+                    }).reverse(),
                 ];
 
                 setMessages(fetchedMessages);
@@ -58,12 +58,14 @@ export default function Chat() {
             }
         };
 
-        if (user?.uid) {
-            fetchMessages().then(() => {
-                if (endOfMessagesRef.current) {
-                    endOfMessagesRef.current.scrollIntoView({ behavior: "smooth" });
-                }
-            });
+        if (user !== null) {
+            if (user?.uid) {
+                fetchMessages().then(() => {
+                    if (endOfMessagesRef.current) {
+                        endOfMessagesRef.current.scrollIntoView({ behavior: "smooth" });
+                    }
+                });
+            }
         } else {
             router.push("/auth/signin");
             setLoading(false);

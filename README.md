@@ -13,8 +13,9 @@ Heartspeak is an AI-powered mental health assistant built as a project submissio
 ## Tech Stack
 
 - Next.js with TypeScript and Tailwind
+- Firebase Authentication and Firestore
 - Amazon AWS EC2
-- Amazon AWS Bedrock API
+- Claude 3 Haiku using Amazon AWS Bedrock API
 
 ## Setup Instructions
 
